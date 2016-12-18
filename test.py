@@ -12,12 +12,6 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 
-#reading in an image
-image = mpimg.imread('test_images/solidWhiteRight.jpg')
-#printing out some stats and plotting
-print('This image is:', type(image), 'with dimesions:', image.shape)
-plt.imshow(image)  #call as plt.imshow(gray, cmap='gray') to show a grayscaled image
-plt.show()
 
 import math
 
@@ -63,6 +57,22 @@ def region_of_interest(img, vertices):
     masked_image = cv2.bitwise_and(img, mask)
     return masked_image
 
+def filter_lines(lines):
+    # 540 x 960
+    pos_min = 0.50
+    pos_max = 0.65
+    neg_min = -0.80
+    neg_max = -0.65
+    filtered = []
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            slope = (y2 - y1) / (x2 - x1)
+            right_lane = slope >= pos_min and slope <= pos_max
+            left_lane = slope >= neg_min and slope <= neg_max
+            inc = right_lane or left_lane
+            if inc:
+                filtered.append(line)
+    return filtered
 
 def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
     """
@@ -81,8 +91,13 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
     If you want to make the lines semi-transparent, think about combining
     this function with the weighted_img() function below
     """
+    # filter down to two lines. +/-. Filter by slope first
+    lines = filter_lines(lines)
     for line in lines:
         for x1,y1,x2,y2 in line:
+            deltax = x2 - x1
+            deltay = y2 - y1
+            print (x1, y1, x2, y2, deltay/deltax)
             cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
@@ -126,20 +141,20 @@ def test_process(image):
     blur = gaussian_blur(gray, kernel_size)
     
     # canny
-    low_threshold = 50
-    high_threshold = 150
+    low_threshold = 40
+    high_threshold = 120
     canny_image = canny(blur, low_threshold, high_threshold)
     
     # filter region interest
     imshape = canny_image.shape
-    vertices = np.array([[(0,imshape[0]),(0.48*imshape[1], 0.55*imshape[0]), (0.48*imshape[1] + 50, 0.55*imshape[0]), (imshape[1],imshape[0])]], dtype=np.int32)
+    vertices = np.array([[(0,imshape[0]),(0.45*imshape[1], 0.60*imshape[0]), (0.45*imshape[1] + 75, 0.60*imshape[0]), (imshape[1],imshape[0])]], dtype=np.int32)
     canny_roi = region_of_interest(canny_image, vertices)
     
     # hough transform
     rho = 2 # distance resolution in pixels of the Hough grid
     theta = 1*np.pi/180 # angular resolution in radians of the Hough grid
-    threshold = 10     # minimum number of votes (intersections in Hough grid cell)
-    min_line_length = 40 #minimum number of pixels making up a line
+    threshold = 8     # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 20 #minimum number of pixels making up a line
     max_line_gap = 5    # maximum gap in pixels between connectable line segments
     lines_hough = hough_lines(canny_roi, rho, theta, threshold, min_line_length, max_line_gap)
     
@@ -155,8 +170,8 @@ for testImg in x:
     image = mpimg.imread("test_images/" + testImg)
     plt.imshow(test_process(image))
     plt.show()
-    
-    
+    print("-------")
+
 # Import everything needed to edit/save/watch video clips
 from moviepy.editor import VideoFileClip
 from IPython.display import HTML
@@ -169,6 +184,6 @@ def process_image(image):
     return result
     
 white_output = 'white.mp4'
-clip1 = VideoFileClip("solidWhiteRight.mp4")
-white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
-white_clip.write_videofile(white_output, audio=False)
+#clip1 = VideoFileClip("solidWhiteRight.mp4")
+#white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
+#white_clip.write_videofile(white_output, audio=False)
