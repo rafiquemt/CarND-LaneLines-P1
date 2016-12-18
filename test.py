@@ -58,20 +58,8 @@ def region_of_interest(img, vertices):
     return masked_image
 
 def filter_lines(lines):
-    # 540 x 960
-    pos_min = 0.50
-    pos_max = 0.65
-    neg_min = -0.80
-    neg_max = -0.65
-    filtered = []
-    for line in lines:
-        for x1, y1, x2, y2 in line:
-            slope = (y2 - y1) / (x2 - x1)
-            right_lane = slope >= pos_min and slope <= pos_max
-            left_lane = slope >= neg_min and slope <= neg_max
-            inc = right_lane or left_lane
-            if inc:
-                filtered.append(line)
+
+
     return filtered
 
 def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
@@ -92,13 +80,47 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
     this function with the weighted_img() function below
     """
     # filter down to two lines. +/-. Filter by slope first
-    lines = filter_lines(lines)
+    # 540 x 960
+    pos_min = 0.50
+    pos_max = 0.65
+    neg_min = -0.80
+    neg_max = -0.65
+    filtered = []
+    slope_left = []
+    slope_right = []
+    b_left = []
+    b_right = []
+    
     for line in lines:
-        for x1,y1,x2,y2 in line:
-            deltax = x2 - x1
-            deltay = y2 - y1
-            print (x1, y1, x2, y2, deltay/deltax)
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+        for x1, y1, x2, y2 in line:
+            slope = (y2 - y1) / (x2 - x1)
+            b = y2 - slope * x2
+            right_lane = slope >= pos_min and slope <= pos_max
+            left_lane = slope >= neg_min and slope <= neg_max
+            if right_lane:
+                slope_left.append(slope)
+                b_left.append(b)
+            if left_lane:
+                slope_right.append(slope)
+                b_right.append(b)
+                
+    left_m = np.average(slope_left)
+    left_b = np.average(b_left)
+    right_m = np.average(slope_right)
+    right_b = np.average(b_right)
+
+    left_y1 = 540
+    left_x1 = (left_y1 - left_b) / left_m
+    left_y2 = 300
+    left_x2 - (left_y2 - left_b) / left_m
+
+    right_y1 = 300
+    right_x1 = (right_y1 - right_b) / right_m
+    right_y2 = 540
+    right_x2 = (right_y2 - right_b) / right_m
+
+    cv2.line(img, (left_x1, left_y1), (left_x2, left_y2), color, thickness)
+    cv2.line(img, (right_x1, right_y1), (right_x2, right_y2), color, thickness)
 
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     """
