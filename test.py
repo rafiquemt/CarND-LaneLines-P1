@@ -22,7 +22,7 @@ def grayscale(img):
     but NOTE: to see the returned image as grayscale
     you should call plt.imshow(gray, cmap='gray')"""
     #return cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
     # Or use BGR2GRAY if you read an image with cv2.imread()
     # return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
@@ -82,47 +82,52 @@ def draw_lines(img, lines, orig, color=[255, 0, 0], thickness=2):
     """
     # filter down to two lines. +/-. Filter by slope first
     # 540 x 960
-    pos_min = 0.50
-    pos_max = 0.70
-    neg_min = -0.8
-    neg_max = -0.65
-    filtered = []
-    slope_left = []
-    slope_right = []
-    b_left = []
-    b_right = []
+#    pos_min = 0.50
+#    pos_max = 2
+#    neg_min = -2
+#    neg_max = -0.5
+#    filtered = []
+#    slope_left = []
+#    slope_right = []
+#    b_left = []
+#    b_right = []
+#    
+#    for line in lines:
+#        for x1, y1, x2, y2 in line:
+#            slope = (y2 - y1) / (x2 - x1)
+#            b = y2 - slope * x2
+#            right_lane = slope >= pos_min and slope <= pos_max
+#            left_lane = slope >= neg_min and slope <= neg_max
+#            if left_lane:
+#                slope_left.append(slope)
+#                b_left.append(b)
+#            if right_lane:
+#                slope_right.append(slope)
+#                b_right.append(b)
+#                
+#    left_m = np.average(slope_left)
+#    left_b = np.average(b_left)
+#    right_m = np.average(slope_right)
+#    right_b = np.average(b_right)
+#
+#    #print(len(slope_left), left_m, left_b, right_m, right_b)
+#    left_y1 = 540
+#    left_x1 = math.floor((left_y1 - left_b) / left_m)
+#    left_y2 = 325
+#    left_x2 = math.floor((left_y2 - left_b) / left_m)
+#
+#    right_y1 = 325
+#    right_x1 = math.floor((right_y1 - right_b) / right_m)
+#    right_y2 = 540
+#    right_x2 = math.floor((right_y2 - right_b) / right_m)
+#    
+#    cv2.line(img, (left_x1, left_y1), (left_x2, left_y2), color, thickness)
+#    cv2.line(img, (right_x1, right_y1), (right_x2, right_y2), color, thickness)
     
+    ## fallback to just drawing hough lines
     for line in lines:
-        for x1, y1, x2, y2 in line:
-            slope = (y2 - y1) / (x2 - x1)
-            b = y2 - slope * x2
-            right_lane = slope >= pos_min and slope <= pos_max
-            left_lane = slope >= neg_min and slope <= neg_max
-            if left_lane:
-                slope_left.append(slope)
-                b_left.append(b)
-            if right_lane:
-                slope_right.append(slope)
-                b_right.append(b)
-                
-    left_m = np.average(slope_left)
-    left_b = np.average(b_left)
-    right_m = np.average(slope_right)
-    right_b = np.average(b_right)
-
-    #print(len(slope_left), left_m, left_b, right_m, right_b)
-    left_y1 = 540
-    left_x1 = math.floor((left_y1 - left_b) / left_m)
-    left_y2 = 325
-    left_x2 = math.floor((left_y2 - left_b) / left_m)
-
-    right_y1 = 325
-    right_x1 = math.floor((right_y1 - right_b) / right_m)
-    right_y2 = 540
-    right_x2 = math.floor((right_y2 - right_b) / right_m)
-    
-    cv2.line(img, (left_x1, left_y1), (left_x2, left_y2), color, thickness)
-    cv2.line(img, (right_x1, right_y1), (right_x2, right_y2), color, thickness)
+        for x1,y1,x2,y2 in line:
+            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
 
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     """
@@ -159,15 +164,19 @@ def test_process(image):
 
     # grayscale
     gray = grayscale(image)
+    plt.imshow(gray, cmap='gray')
+    plt.show()
     
     # blur
     kernel_size = 5
     blur = gaussian_blur(gray, kernel_size)
     
     # canny
-    low_threshold = 40
-    high_threshold = 120
+    low_threshold = 50
+    high_threshold = 150
     canny_image = canny(blur, low_threshold, high_threshold)
+    plt.imshow(canny_image)
+    plt.show()
     
     # filter region interest
     imshape = canny_image.shape
@@ -189,12 +198,13 @@ def test_process(image):
     
 # TODO: Build your pipeline that will draw lane lines on the test_images
 # then save them to the test_images directory.
-for testImg in x:
-    print(testImg)
-    image = mpimg.imread("test_images/" + testImg)
-    plt.imshow(test_process(image))
-    plt.show()
-    print("-------")
+#for testImg in x:
+testImg = "curve_bridge.jpg"
+print(testImg)
+image = mpimg.imread("test_images/" + testImg)
+plt.imshow(test_process(image))
+plt.show()
+print("-------")
 
 # Import everything needed to edit/save/watch video clips
 from moviepy.editor import VideoFileClip
@@ -207,7 +217,17 @@ def process_image(image):
     result = test_process(image)
     return result
     
-white_output = 'white.mp4'
-clip1 = VideoFileClip("solidWhiteRight.mp4")
-white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
-white_clip.write_videofile(white_output, audio=False)
+#white_output = 'white.mp4'
+#clip1 = VideoFileClip("solidWhiteRight.mp4")
+#white_clip = clip1.fl_image(process_image) #NOTE: this function expects color images!!
+#white_clip.write_videofile(white_output, audio=False)
+#
+#yellow_output = 'yellow.mp4'
+#clip2 = VideoFileClip('solidYellowLeft.mp4')
+#yellow_clip = clip2.fl_image(process_image)
+#yellow_clip.write_videofile(yellow_output, audio=False)
+
+#challenge_output = 'extra.mp4'
+#clip2 = VideoFileClip('challenge.mp4')
+#challenge_clip = clip2.fl_image(process_image)
+#challenge_clip.write_videofile(challenge_output, audio=False)
